@@ -5,7 +5,7 @@ import random
 
 WIDTH = 800
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
-pygame.display.set_caption("A* path finding algorthm")
+pygame.display.set_caption("Path finding algorthm")
 
 RED = (255, 0,0)
 GREEN = (0, 255,0)
@@ -304,6 +304,7 @@ def main(win, width):
                 keys = pygame.key.get_pressed()
                 # Press B for bfs 
                 if keys[pygame.K_b]:
+                    pygame.display.set_caption('BFS')
                     if start and end:
                         for row in grid:
                             for spot in row:
@@ -313,6 +314,7 @@ def main(win, width):
                             
                 # Press D for dfs
                 elif keys[pygame.K_d]:
+                    pygame.display.set_caption('DFS')
                     if start and end:
                         for row in grid:
                             for spot in row:
@@ -322,6 +324,7 @@ def main(win, width):
                         
                 # Press A for a star
                 elif keys[pygame.K_a]:
+                    pygame.display.set_caption('A*')
                     if start and end:
                         for row in grid:
                             for spot in row:
