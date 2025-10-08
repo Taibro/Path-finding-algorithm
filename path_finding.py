@@ -101,6 +101,7 @@ class Spot:
             
         if self.col < self.total_rows - 2 and not grid[self.row][self.col + 2].is_barrier(): # Check right
             self.wall_neighbors.append((grid[self.row][self.col + 1], grid[self.row][self.col + 2]))
+        random.seed(1)
         random.shuffle(self.wall_neighbors)
     
     def __lt__(self, other):
