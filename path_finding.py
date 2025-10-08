@@ -321,7 +321,6 @@ def main(win, width):
     run = True
     started = False
     
-    draw_barrier(grid)
     while run:
             
             draw(WIN, grid, ROWS, WIDTH)
@@ -364,10 +363,7 @@ def main(win, width):
                 if keys[pygame.K_SPACE]:
                     pygame.display.set_caption('Maze generating...')
                     if not start and not end:
-                        # for row in grid:
-                        #     for spot in row:
-                        #         spot.update_wall_neighbors(grid)
-                        
+                        draw_barrier(grid)
                         dfs_maze_generation(lambda: draw(win, grid, ROWS, width),
                                             grid)
                 
@@ -405,7 +401,6 @@ def main(win, width):
                     start = None
                     end = None
                     grid = make_grid(ROWS, width)
-                    draw_barrier(grid)
                 
     pygame.quit()
     
