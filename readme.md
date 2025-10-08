@@ -7,5 +7,6 @@
 - Press A for A*
 - Press D for DFS
 - Press B for BFS
+- Press SPACE for maze generation
 
 ![A star path finding algorithm](astar.png)
