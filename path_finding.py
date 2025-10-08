@@ -3,8 +3,9 @@ import math
 from queue import PriorityQueue, Queue
 import random
 
-WIDTH = 800
-WIN = pygame.display.set_mode((WIDTH, WIDTH))
+WIDTH = 1280
+HEIGHT = 800
+WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Path finding algorthm")
 
 RED = (255, 0,0)
@@ -24,8 +25,9 @@ class Spot:
         self.col = col
         self.x = row * width
         self.y = col * width
-        self.color = WHITE
+        self.color = BLACK
         self.neighbors = []
+        self.wall_neighbors = []
         self.width = width
         self.total_rows = total_rows
         
@@ -39,7 +41,7 @@ class Spot:
         return self.color == GREEN
     
     def is_barrier(self):
-        return self.color == BLACK
+        return self.color == WHITE
     
     def is_start(self):
         return self.color == ORANGE
@@ -48,7 +50,7 @@ class Spot:
         return self.color == TURQUOISE
     
     def reset(self):
-        self.color = WHITE
+        self.color = BLACK 
         
     def make_start(self):
         self.color = ORANGE
@@ -60,7 +62,7 @@ class Spot:
         self.color = GREEN
         
     def make_barrier(self):
-        self.color = BLACK
+        self.color = WHITE
         
     def make_end(self):
         self.color = TURQUOISE
@@ -85,6 +87,21 @@ class Spot:
         if self.col < self.total_rows - 1 and not grid[self.row][self.col + 1].is_barrier(): # Check right
             self.neighbors.append(grid[self.row][self.col + 1])
         random.shuffle(self.neighbors)
+        
+    def update_wall_neighbors(self, grid):
+        self.wall_neighbors = []
+        if self.row < self.total_rows - 2 and not grid[self.row + 2][self.col].is_barrier(): # Check down
+            self.wall_neighbors.append((grid[self.row + 1][self.col],grid[self.row + 2][self.col]))
+            
+        if self.row > 1 and not grid[self.row - 2][self.col].is_barrier(): # Check up
+            self.wall_neighbors.append((grid[self.row-1][self.col], grid[self.row - 2][self.col]))
+            
+        if self.col > 1 and not grid[self.row][self.col - 2].is_barrier(): # Check left
+            self.wall_neighbors.append((grid[self.row][self.col - 1],grid[self.row][self.col - 2]))
+            
+        if self.col < self.total_rows - 2 and not grid[self.row][self.col + 2].is_barrier(): # Check right
+            self.wall_neighbors.append((grid[self.row][self.col + 1], grid[self.row][self.col + 2]))
+        random.shuffle(self.wall_neighbors)
     
     def __lt__(self, other):
         return False
@@ -148,6 +165,7 @@ def astar_algorithm(draw, grid, start, end):
             
     return False
 
+###################################################
 # dfs algorithm
 def dfs_algorithm(draw, grid, start, end):
     visited = set()
@@ -182,6 +200,29 @@ def dfs_algorithm(draw, grid, start, end):
                 current.make_closed()
         
     return False
+
+# dfs maze generation
+def dfs_maze_generation(draw, grid):
+    visited = set()
+    stack = [(None,grid[1][1])]
+    
+    while stack:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+        
+        current = stack.pop()
+        
+        if current[1] not in visited:
+            visited.add(current[1])
+            if current[0] != None:
+                current[0].reset()
+            
+            current[1].update_wall_neighbors(grid)
+            for wall, neighbor in current[1].wall_neighbors:
+                if neighbor not in visited:
+                    stack.append((wall, neighbor))
+        draw()
 
 # bfs algorithm
 def bfs_algorithm(draw, grid, start, end):
@@ -233,11 +274,24 @@ def make_grid(rows, width):
     return grid
 
 def draw_grid(win, rows, width):
-    gap = width // rows
+    gap = width // rows 
     for i in range(rows):
         pygame.draw.line(win, GREY, (0, i * gap), (width, i * gap))
         for j in range(rows):
             pygame.draw.line(win, GREY, (j * gap, 0), (j * gap, width))
+            
+def draw_barrier(grid):
+    i = j = 0
+    for row in grid:
+        if i % 2 == 0:
+            for spot in row:
+                spot.make_barrier()
+        else:
+            for spot in row:
+                if j % 2 == 0:
+                    spot.make_barrier()
+                j += 1
+        i += 1
             
 def draw(win, grid, rows, width):
     win.fill('black')
@@ -246,7 +300,7 @@ def draw(win, grid, rows, width):
         for spot in row:
             spot.draw(win)
             
-    draw_grid(win, rows, width)
+    #draw_grid(win, rows, width)
     pygame.display.update()
     
 def get_clicked_pos(pos, rows, width):
@@ -258,7 +312,7 @@ def get_clicked_pos(pos, rows, width):
     return row, col
 
 def main(win, width):
-    ROWS = 30 # CHANGE THE SIZE OF THE MAP
+    ROWS = 64 # CHANGE THE SIZE OF THE MAP
     grid = make_grid(ROWS, WIDTH)
     
     start = None
@@ -267,7 +321,9 @@ def main(win, width):
     run = True
     started = False
     
+    draw_barrier(grid)
     while run:
+            
             draw(WIN, grid, ROWS, WIDTH)
         
             for event in pygame.event.get():
@@ -276,19 +332,20 @@ def main(win, width):
                 if started:
                     continue
                     
-    
                 if pygame.mouse.get_pressed()[0]: # left mouse
                     pos = pygame.mouse.get_pos()
                     row, col = get_clicked_pos(pos, ROWS, width)
                     spot = grid[row][col]
-                    if not start and spot != end:
-                        start = spot
-                        start.make_start()
-                    elif not end and spot != start:
-                        end = spot
-                        end.make_end()
-                    elif spot != end and spot != start:
-                        spot.make_barrier()
+                    #print(row, col)
+                    if not spot.is_barrier():
+                        if not start and spot != end:
+                            start = spot
+                            start.make_start()
+                        elif not end and spot != start:
+                            end = spot
+                            end.make_end()
+                        elif spot != end and spot != start:
+                            spot.make_barrier()
                     
                 elif pygame.mouse.get_pressed()[2]: # right mouse
                     pos = pygame.mouse.get_pos()
@@ -302,6 +359,18 @@ def main(win, width):
                         end = None
                     
                 keys = pygame.key.get_pressed()
+                
+                # Press SPACE for maze generation
+                if keys[pygame.K_SPACE]:
+                    pygame.display.set_caption('Maze generating...')
+                    if not start and not end:
+                        # for row in grid:
+                        #     for spot in row:
+                        #         spot.update_wall_neighbors(grid)
+                        
+                        dfs_maze_generation(lambda: draw(win, grid, ROWS, width),
+                                            grid)
+                
                 # Press B for bfs 
                 if keys[pygame.K_b]:
                     pygame.display.set_caption('BFS')
@@ -336,6 +405,7 @@ def main(win, width):
                     start = None
                     end = None
                     grid = make_grid(ROWS, width)
+                    draw_barrier(grid)
                 
     pygame.quit()
     
