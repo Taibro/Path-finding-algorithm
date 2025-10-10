@@ -5,8 +5,10 @@ import random
 
 WIDTH = 1280
 HEIGHT = 800
+pygame.init()
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Path finding algorthm")
+font = pygame.font.Font(None, 30)
 
 RED = (255, 0,0)
 GREEN = (0, 255,0)
@@ -101,12 +103,11 @@ class Spot:
             
         if self.col < self.total_rows - 2 and not grid[self.row][self.col + 2].is_barrier(): # Check right
             self.wall_neighbors.append((grid[self.row][self.col + 1], grid[self.row][self.col + 2]))
-        random.seed(1)
+            
         random.shuffle(self.wall_neighbors)
     
     def __lt__(self, other):
         return False
-    
 
 def h(p1, p2):# heuristic function
     x1, y1 = p1
@@ -133,6 +134,8 @@ def astar_algorithm(draw, grid, start, end):
     
     open_set_hash = {start}
     
+    time_start = pygame.time.get_ticks()
+    
     while not open_set.empty():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -144,7 +147,7 @@ def astar_algorithm(draw, grid, start, end):
         if current == end:
             reconstruct_path(came_from, end, draw)
             end.make_end()
-            return True # make path
+            return pygame.time.get_ticks() - time_start # make path
         
         for neighbor in current.neighbors:
             temp_g_score = g_score[current] + 1
@@ -164,14 +167,16 @@ def astar_algorithm(draw, grid, start, end):
         if current != start:
             current.make_closed()
             
-    return False
+    return pygame.time.get_ticks() - time_start
 
 ###################################################
 # dfs algorithm
-def dfs_algorithm(draw, grid, start, end):
+def dfs_algorithm(draw, start, end):
     visited = set()
     came_from = {}
     stack = [start]
+   
+    time_start = pygame.time.get_ticks()
    
     while stack:
         for event in pygame.event.get():
@@ -184,7 +189,7 @@ def dfs_algorithm(draw, grid, start, end):
         if current == end:
             reconstruct_path(came_from, end, draw)
             end.make_end()
-            return True
+            return pygame.time.get_ticks() - time_start
         
         if current not in visited:
             visited.add(current)
@@ -200,7 +205,7 @@ def dfs_algorithm(draw, grid, start, end):
         if current != start:
                 current.make_closed()
         
-    return False
+    return pygame.time.get_ticks() - time_start
 
 # dfs maze generation
 def dfs_maze_generation(draw, grid):
@@ -226,11 +231,13 @@ def dfs_maze_generation(draw, grid):
         draw()
 
 # bfs algorithm
-def bfs_algorithm(draw, grid, start, end):
+def bfs_algorithm(draw, start, end):
     visited = set()
     came_from = {}
     q = Queue()
     q.put(start)
+    
+    time_start = pygame.time.get_ticks()
     
     while not q.empty():
         for event in pygame.event.get():
@@ -243,7 +250,7 @@ def bfs_algorithm(draw, grid, start, end):
         if current == end:
             reconstruct_path(came_from, end, draw)
             end.make_end()
-            return True
+            return pygame.time.get_ticks() - time_start
         
         if current not in visited:
             visited.add(current)
@@ -260,7 +267,7 @@ def bfs_algorithm(draw, grid, start, end):
         if current !=  start:
             current.make_closed()
         
-    return False
+    return pygame.time.get_ticks() - time_start
 ###################################################
 
 def make_grid(rows, width):
@@ -294,7 +301,7 @@ def draw_barrier(grid):
                 j += 1
         i += 1
             
-def draw(win, grid, rows, width):
+def draw(win, grid,algorithms, rows, width):
     win.fill('black')
     
     for row in grid:
@@ -302,6 +309,7 @@ def draw(win, grid, rows, width):
             spot.draw(win)
             
     #draw_grid(win, rows, width)
+    draw_legend(algorithms)
     pygame.display.update()
     
 def get_clicked_pos(pos, rows, width):
@@ -312,6 +320,24 @@ def get_clicked_pos(pos, rows, width):
     col = x // gap
     return row, col
 
+def draw_legend(algorithms):
+    rect = pygame.FRect(WIDTH - 200, HEIGHT - 200, 200, 100)
+    pygame.draw.rect(WIN, WHITE, rect, 0, 4)
+    pygame.draw.rect(WIN, GREY, rect, 4, 4)
+    
+    i = 0
+    n = len(algorithms)
+    for name, times in algorithms.items():
+            x = rect.centerx - 50
+            y = rect.top + rect.height / (n * 2) + rect.height / n * i
+            
+            text_surf = font.render(f"{name}: {times} ms", True, BLACK)
+            text_rect = text_surf.get_frect(midleft=(x, y))
+            
+            WIN.blit(text_surf, text_rect)
+               
+            i += 1
+
 def main(win, width):
     ROWS = 64 # CHANGE THE SIZE OF THE MAP
     grid = make_grid(ROWS, WIDTH)
@@ -321,10 +347,13 @@ def main(win, width):
     
     run = True
     started = False
+    algorithms = {"DFS" : 0,
+                  "BFS":0,
+                  "A*":0}
     
     while run:
             
-            draw(WIN, grid, ROWS, WIDTH)
+            draw(WIN, grid,algorithms, ROWS, WIDTH)
         
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -365,7 +394,8 @@ def main(win, width):
                     pygame.display.set_caption('Maze generating...')
                     if not start and not end:
                         draw_barrier(grid)
-                        dfs_maze_generation(lambda: draw(win, grid, ROWS, width),
+                        random.seed(100)
+                        dfs_maze_generation(lambda: draw(win, grid,algorithms, ROWS, width),
                                             grid)
                 
                 # Press B for bfs 
@@ -376,7 +406,7 @@ def main(win, width):
                             for spot in row:
                                 spot.update_neighbors(grid)
                                 
-                        bfs_algorithm(lambda: draw(win, grid, ROWS, width), grid, start, end)
+                        algorithms["BFS"] = bfs_algorithm(lambda: draw(win, grid,algorithms, ROWS, width), start, end)
                             
                 # Press D for dfs
                 elif keys[pygame.K_d]:
@@ -386,7 +416,7 @@ def main(win, width):
                             for spot in row:
                                 spot.update_neighbors(grid)
                                 
-                        dfs_algorithm(lambda: draw(win, grid, ROWS, width), grid, start, end)
+                        algorithms["DFS"] = dfs_algorithm(lambda: draw(win, grid,algorithms, ROWS, width), start, end)
                         
                 # Press A for a star
                 elif keys[pygame.K_a]:
@@ -396,12 +426,13 @@ def main(win, width):
                             for spot in row:
                                 spot.update_neighbors(grid)
                                 
-                        astar_algorithm(lambda: draw(win, grid, ROWS, width), grid, start, end)
+                        algorithms["A*"] = astar_algorithm(lambda: draw(win, grid,algorithms, ROWS, width), grid, start, end)
                 
                 if keys[pygame.K_c]:
                     start = None
                     end = None
                     grid = make_grid(ROWS, width)
+            
                 
     pygame.quit()
     
